@@ -130,16 +130,24 @@ class HungarianMatcher(nn.Module):
                 point_coords.repeat(out_mask.shape[0], 1, 1),
                 align_corners=False,
             ).squeeze(1)
+            #DEBUG:
+            # if torch.any(out_mask.isinf()):
+            #     breakpoint()
 
             with autocast(enabled=False):
                 out_mask = out_mask.float()
                 tgt_mask = tgt_mask.float()
+                #DEBUG:
+                # if torch.any(out_mask.isinf()):
+                #     breakpoint()
                 # Compute the focal loss between masks
                 cost_mask = batch_sigmoid_ce_loss_jit(out_mask, tgt_mask)
+                # FIXME: cost_mask will be nan,temporarily fix it
+                cost_mask[cost_mask.isnan()]=1e6
 
                 # Compute the dice loss betwen masks
                 cost_dice = batch_dice_loss_jit(out_mask, tgt_mask)
-            
+
             # Final cost matrix
             C = (
                 self.cost_mask * cost_mask
